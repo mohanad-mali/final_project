@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   FaGoogle,
@@ -15,21 +16,32 @@ import {
 } from "react-icons/fa";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   async function handleLogin(e) {
     e.preventDefault();
 
-    try {
-      const res = await axios.post(
-        "https://ecommerce.routemisr.com/api/v1/auth/signin",
-        { email, password },
-      );
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
 
-      localStorage.setItem("token", res.data.token);
+    if (res?.ok) {
+      const sessionRes = await fetch("/api/auth/session");
+      const session = await sessionRes.json();
+
+      if (session?.accessToken) {
+        localStorage.setItem("token", session.accessToken);
+      }
+
       alert("Login Success");
-    } catch (error) {
+      router.push("/");
+      router.refresh();
+    } else {
       alert("Invalid email or password");
     }
   }
@@ -37,7 +49,6 @@ export default function LoginPage() {
   return (
     <main className="bg-white">
       <section className="max-w-7xl mx-auto px-4 py-16 grid lg:grid-cols-2 gap-12 items-center">
-        {/* Left Side */}
         <div className="text-center">
           <div className="mx-auto w-[430px] max-w-full h-[330px] flex items-center justify-center">
             <img
@@ -69,7 +80,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Login Form */}
         <div className="max-w-md w-full mx-auto">
           <h1 className="text-3xl font-bold text-green-600 text-center">
             FreshCart
@@ -84,12 +94,18 @@ export default function LoginPage() {
           </p>
 
           <div className="mt-7 space-y-3">
-            <button className="w-full border border-gray-200 rounded-lg py-3 flex items-center justify-center gap-3 text-gray-700 hover:bg-gray-50">
+            <button
+              type="button"
+              className="w-full border border-gray-200 rounded-lg py-3 flex items-center justify-center gap-3 text-gray-700 hover:bg-gray-50"
+            >
               <FaGoogle className="text-red-500" />
               Continue with Google
             </button>
 
-            <button className="w-full border border-gray-200 rounded-lg py-3 flex items-center justify-center gap-3 text-gray-700 hover:bg-gray-50">
+            <button
+              type="button"
+              className="w-full border border-gray-200 rounded-lg py-3 flex items-center justify-center gap-3 text-gray-700 hover:bg-gray-50"
+            >
               <FaFacebookF className="text-blue-600" />
               Continue with Facebook
             </button>
@@ -116,6 +132,7 @@ export default function LoginPage() {
                 className="w-full border border-gray-200 rounded-lg py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
@@ -137,6 +154,7 @@ export default function LoginPage() {
                 className="w-full border border-gray-200 rounded-lg py-3 pl-11 pr-11 outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <FaEye className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>

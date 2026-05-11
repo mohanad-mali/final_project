@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { addToCart } from "@/api/cartApi";
+import { addToWishlist } from "@/api/wishlistApi";
 
 import {
   FaHeart,
@@ -16,8 +18,6 @@ import {
   FaShieldAlt,
   FaStar,
   FaPlus,
-  FaEye,
-  FaSync,
 } from "react-icons/fa";
 
 export default function ProductDetails() {
@@ -27,6 +27,8 @@ export default function ProductDetails() {
   const [related, setRelated] = useState([]);
   const [mainImage, setMainImage] = useState("");
   const [qty, setQty] = useState(1);
+  const [loadingCart, setLoadingCart] = useState(false);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
   async function getProduct() {
     try {
@@ -52,6 +54,36 @@ export default function ProductDetails() {
     }
   }
 
+  async function handleAddToCart(productId) {
+    try {
+      setLoadingCart(true);
+
+      for (let i = 0; i < qty; i++) {
+        await addToCart(productId);
+      }
+
+      alert("Product added to cart ✅");
+    } catch (error) {
+      console.log(error);
+      alert("Please login first ❌");
+    } finally {
+      setLoadingCart(false);
+    }
+  }
+
+  async function handleAddToWishlist(productId) {
+    try {
+      setLoadingWishlist(true);
+      await addToWishlist(productId);
+      alert("Product added to wishlist ✅");
+    } catch (error) {
+      console.log(error);
+      alert("Please login first ❌");
+    } finally {
+      setLoadingWishlist(false);
+    }
+  }
+
   useEffect(() => {
     if (id) getProduct();
   }, [id]);
@@ -68,15 +100,12 @@ export default function ProductDetails() {
     <>
       <main className="bg-white">
         <section className="max-w-7xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
           <div className="text-sm text-gray-500 mb-8">
             Home / {product.category?.name} /{" "}
             <span className="text-green-600">{product.title}</span>
           </div>
 
-          {/* Product */}
           <div className="grid lg:grid-cols-2 gap-10">
-            {/* Images */}
             <div>
               <div className="bg-gray-50 rounded-xl border h-[420px] flex items-center justify-center">
                 <img src={mainImage} className="max-h-[380px] object-contain" />
@@ -97,7 +126,6 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Details */}
             <div>
               <p className="text-green-600">{product.category?.name}</p>
 
@@ -118,17 +146,29 @@ export default function ProductDetails() {
 
               <p className="text-gray-600 mt-4">{product.description}</p>
 
-              {/* Quantity */}
               <div className="flex items-center gap-4 mt-6">
-                <button onClick={() => setQty(qty > 1 ? qty - 1 : 1)}>-</button>
+                <button
+                  onClick={() => setQty(qty > 1 ? qty - 1 : 1)}
+                  className="w-8 h-8 border rounded"
+                >
+                  -
+                </button>
                 <span>{qty}</span>
-                <button onClick={() => setQty(qty + 1)}>+</button>
+                <button
+                  onClick={() => setQty(qty + 1)}
+                  className="w-8 h-8 border rounded"
+                >
+                  +
+                </button>
               </div>
 
-              {/* Buttons */}
               <div className="grid grid-cols-2 gap-4 mt-6">
-                <button className="bg-green-600 text-white py-3 rounded flex items-center justify-center gap-2">
-                  <FaShoppingCart /> Add to Cart
+                <button
+                  onClick={() => handleAddToCart(product._id)}
+                  disabled={loadingCart}
+                  className="bg-green-600 text-white py-3 rounded flex items-center justify-center gap-2 disabled:bg-gray-400"
+                >
+                  <FaShoppingCart /> {loadingCart ? "Adding..." : "Add to Cart"}
                 </button>
 
                 <button className="bg-gray-900 text-white py-3 rounded flex items-center justify-center gap-2">
@@ -137,15 +177,19 @@ export default function ProductDetails() {
               </div>
 
               <div className="flex gap-3 mt-4">
-                <button className="flex-1 border py-3 rounded flex items-center justify-center gap-2">
-                  <FaHeart /> Wishlist
+                <button
+                  onClick={() => handleAddToWishlist(product._id)}
+                  disabled={loadingWishlist}
+                  className="flex-1 border py-3 rounded flex items-center justify-center gap-2 disabled:bg-gray-100"
+                >
+                  <FaHeart /> {loadingWishlist ? "Adding..." : "Wishlist"}
                 </button>
+
                 <button className="w-14 border rounded flex items-center justify-center">
                   <FaShareAlt />
                 </button>
               </div>
 
-              {/* Features */}
               <div className="grid grid-cols-3 gap-4 mt-8 text-sm">
                 <div className="flex items-center gap-2">
                   <FaTruck /> Free Delivery
@@ -160,7 +204,6 @@ export default function ProductDetails() {
             </div>
           </div>
 
-          {/* Related */}
           <div className="mt-14">
             <h2 className="text-xl font-bold mb-6">Related Products</h2>
 
@@ -179,7 +222,10 @@ export default function ProductDetails() {
                       <span className="text-green-600">{item.price} EGP</span>
 
                       <button
-                        onClick={(e) => e.preventDefault()}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleAddToCart(item._id);
+                        }}
                         className="bg-green-600 text-white w-7 h-7 rounded-full flex items-center justify-center"
                       >
                         <FaPlus />
@@ -193,7 +239,6 @@ export default function ProductDetails() {
         </section>
       </main>
 
-     
       <Footer />
     </>
   );

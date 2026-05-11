@@ -14,48 +14,81 @@ import {
   FaHeadphones,
 } from "react-icons/fa";
 
+import { getCart, updateCartItem, removeCartItem } from "@/api/cartApi";
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
+  const [cartId, setCartId] = useState(null);
+  const [subtotal, setSubtotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchCart() {
+    try {
+      setLoading(true);
+
+      const res = await getCart();
+
+      setCartId(res.data.data._id);
+      setCartItems(res.data.data.products || []);
+      setSubtotal(res.data.data.totalCartPrice || 0);
+    } catch (error) {
+      console.log(error);
+      setCartItems([]);
+      setSubtotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function increaseQty(item) {
+    try {
+      await updateCartItem(item.product._id, item.count + 1);
+      fetchCart();
+    } catch (error) {
+      console.log(error);
+      alert("Cannot update cart");
+    }
+  }
+
+  async function decreaseQty(item) {
+    try {
+      if (item.count <= 1) {
+        await removeCartItem(item.product._id);
+      } else {
+        await updateCartItem(item.product._id, item.count - 1);
+      }
+
+      fetchCart();
+    } catch (error) {
+      console.log(error);
+      alert("Cannot update cart");
+    }
+  }
+
+  async function removeItem(productId) {
+    try {
+      await removeCartItem(productId);
+      fetchCart();
+    } catch (error) {
+      console.log(error);
+      alert("Cannot remove item");
+    }
+  }
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cartItems")) || [];
-    setCartItems(savedCart);
+    fetchCart();
   }, []);
 
-  function updateLocalStorage(updatedCart) {
-    setCartItems(updatedCart);
-    localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-  }
-
-  function increaseQty(id) {
-    const updatedCart = cartItems.map((item) =>
-      item.id === id ? { ...item, qty: item.qty + 1 } : item,
+  if (loading) {
+    return (
+      <>
+        <main className="bg-white min-h-screen flex items-center justify-center">
+          <h2 className="text-2xl font-bold text-gray-700">Loading Cart...</h2>
+        </main>
+        <Footer />
+      </>
     );
-
-    updateLocalStorage(updatedCart);
   }
-
-  function decreaseQty(id) {
-    const updatedCart = cartItems
-      .map((item) => (item.id === id ? { ...item, qty: item.qty - 1 } : item))
-      .filter((item) => item.qty > 0);
-
-    updateLocalStorage(updatedCart);
-  }
-
-  function removeItem(id) {
-    const updatedCart = cartItems.filter((item) => item.id !== id);
-    updateLocalStorage(updatedCart);
-  }
-
-  function saveCartToLocalStorage() {
-    localStorage.setItem("cartItems", JSON.stringify(cartItems));
-  }
-
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0,
-  );
 
   return (
     <>
@@ -96,19 +129,23 @@ export default function CartPage() {
               <div className="lg:col-span-2 space-y-5">
                 {cartItems.map((item) => (
                   <div
-                    key={item.id}
+                    key={item.product._id}
                     className="bg-white border border-gray-100 rounded-xl p-5 flex items-center gap-5 shadow-sm"
                   >
                     <img
-                      src={item.img}
-                      alt={item.title}
+                      src={item.product.imageCover}
+                      alt={item.product.title}
                       className="w-24 h-24 object-contain bg-gray-50 rounded-lg"
                     />
 
                     <div className="flex-1">
-                      <h3 className="font-bold text-gray-800">{item.title}</h3>
+                      <h3 className="font-bold text-gray-800">
+                        {item.product.title}
+                      </h3>
 
-                      <p className="text-sm text-gray-500">{item.category}</p>
+                      <p className="text-sm text-gray-500">
+                        {item.product.category?.name}
+                      </p>
 
                       <p className="text-green-600 font-bold mt-2">
                         {item.price} EGP
@@ -116,16 +153,16 @@ export default function CartPage() {
 
                       <div className="flex items-center gap-3 mt-3">
                         <button
-                          onClick={() => decreaseQty(item.id)}
+                          onClick={() => decreaseQty(item)}
                           className="w-8 h-8 border rounded flex items-center justify-center"
                         >
                           <FaMinus size={12} />
                         </button>
 
-                        <span className="text-gray-800">{item.qty}</span>
+                        <span className="text-gray-800">{item.count}</span>
 
                         <button
-                          onClick={() => increaseQty(item.id)}
+                          onClick={() => increaseQty(item)}
                           className="w-8 h-8 bg-green-600 text-white rounded flex items-center justify-center"
                         >
                           <FaPlus size={12} />
@@ -135,11 +172,11 @@ export default function CartPage() {
 
                     <div className="text-right">
                       <p className="font-bold text-gray-800">
-                        {item.price * item.qty} EGP
+                        {item.price * item.count} EGP
                       </p>
 
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.product._id)}
                         className="text-red-500 mt-4"
                       >
                         <FaTrash />
@@ -181,8 +218,7 @@ export default function CartPage() {
                   </div>
 
                   <Link
-                    href="/checkout"
-                    onClick={saveCartToLocalStorage}
+                    href={`/checkout/${cartId}`}
                     className="block text-center w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
                   >
                     Secure Checkout

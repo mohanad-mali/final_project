@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { FaHeart, FaEye, FaSync, FaPlus } from "react-icons/fa";
+import { addToCart } from "@/api/cartApi";
 
 export default function FeaturedProducts() {
   const [products, setProducts] = useState([]);
+  const [loadingProductId, setLoadingProductId] = useState(null);
 
-  const getProducts = async () => {
+  async function getProducts() {
     try {
       const res = await axios.get(
         "https://ecommerce.routemisr.com/api/v1/products",
@@ -17,35 +19,28 @@ export default function FeaturedProducts() {
     } catch (err) {
       console.log(err);
     }
-  };
+  }
 
-  function addToCart(product) {
-    const oldCart = JSON.parse(localStorage.getItem("cartItems")) || [];
+  async function handleAddToCart(productId) {
+    try {
+      const token = localStorage.getItem("token");
 
-    const existingProduct = oldCart.find((item) => item.id === product._id);
+      if (!token) {
+        alert("Please login first");
+        return;
+      }
 
-    let updatedCart;
+      setLoadingProductId(productId);
 
-    if (existingProduct) {
-      updatedCart = oldCart.map((item) =>
-        item.id === product._id ? { ...item, qty: item.qty + 1 } : item,
-      );
-    } else {
-      updatedCart = [
-        ...oldCart,
-        {
-          id: product._id,
-          title: product.title,
-          category: product.category?.name,
-          price: product.price,
-          qty: 1,
-          img: product.imageCover,
-        },
-      ];
+      await addToCart(productId);
+
+      alert("Product added to cart ✅");
+    } catch (error) {
+      console.log(error);
+      alert("Failed to add product ❌");
+    } finally {
+      setLoadingProductId(null);
     }
-
-    localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-    alert("Product added to cart ✅");
   }
 
   useEffect(() => {
@@ -91,13 +86,14 @@ export default function FeaturedProducts() {
                 </span>
 
                 <button
+                  disabled={loadingProductId === product._id}
                   onClick={(e) => {
                     e.preventDefault();
-                    addToCart(product);
+                    handleAddToCart(product._id);
                   }}
-                  className="bg-green-600 text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-green-700"
+                  className="bg-green-600 text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-green-700 disabled:bg-gray-400"
                 >
-                  <FaPlus />
+                  {loadingProductId === product._id ? "..." : <FaPlus />}
                 </button>
               </div>
             </div>

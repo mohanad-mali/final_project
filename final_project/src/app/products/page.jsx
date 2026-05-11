@@ -5,10 +5,12 @@ import axios from "axios";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { FaHeart, FaEye, FaSync, FaPlus, FaSearch } from "react-icons/fa";
+import { addToCart } from "@/api/cartApi";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
+  const [loadingProductId, setLoadingProductId] = useState(null);
 
   async function getProducts() {
     try {
@@ -21,33 +23,17 @@ export default function ProductsPage() {
     }
   }
 
-  function addToCart(product) {
-    const oldCart = JSON.parse(localStorage.getItem("cartItems")) || [];
-
-    const existingProduct = oldCart.find((item) => item.id === product._id);
-
-    let updatedCart;
-
-    if (existingProduct) {
-      updatedCart = oldCart.map((item) =>
-        item.id === product._id ? { ...item, qty: item.qty + 1 } : item,
-      );
-    } else {
-      updatedCart = [
-        ...oldCart,
-        {
-          id: product._id,
-          title: product.title,
-          category: product.category?.name,
-          price: product.price,
-          qty: 1,
-          img: product.imageCover,
-        },
-      ];
+  async function handleAddToCart(productId) {
+    try {
+      setLoadingProductId(productId);
+      await addToCart(productId);
+      alert("Product added to cart ✅");
+    } catch (error) {
+      console.log(error);
+      alert("Please login first or try again ❌");
+    } finally {
+      setLoadingProductId(null);
     }
-
-    localStorage.setItem("cartItems", JSON.stringify(updatedCart));
-    alert("Product added to cart ✅");
   }
 
   useEffect(() => {
@@ -162,13 +148,18 @@ export default function ProductsPage() {
                         </span>
 
                         <button
+                          disabled={loadingProductId === product._id}
                           onClick={(e) => {
                             e.preventDefault();
-                            addToCart(product);
+                            handleAddToCart(product._id);
                           }}
-                          className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-green-700"
+                          className="bg-green-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-green-700 disabled:bg-gray-400"
                         >
-                          <FaPlus />
+                          {loadingProductId === product._id ? (
+                            "..."
+                          ) : (
+                            <FaPlus />
+                          )}
                         </button>
                       </div>
                     </div>

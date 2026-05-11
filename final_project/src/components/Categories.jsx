@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 
 const categories = [
@@ -33,20 +34,27 @@ export default function Categories() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-5">
         {categories.map((cat, index) => (
-          <div
+          <Link
             key={index}
-            className="bg-white border border-gray-100 shadow-sm rounded-xl h-36 flex flex-col items-center justify-center gap-3 hover:shadow-md transition cursor-pointer"
+            href={`/categories/${cat.name
+              .toLowerCase()
+              .replaceAll(" ", "-")
+              .replaceAll("&", "and")}`}
           >
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center overflow-hidden">
-              <img
-                src={cat.img}
-                alt={cat.name}
-                className="w-14 h-14 object-contain"
-              />
-            </div>
+            <div className="bg-white border border-gray-100 shadow-sm rounded-xl h-36 flex flex-col items-center justify-center gap-3 hover:shadow-md transition cursor-pointer">
+              <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center overflow-hidden">
+                <img
+                  src={cat.img}
+                  alt={cat.name}
+                  className="w-14 h-14 object-contain"
+                />
+              </div>
 
-            <h3 className="text-sm font-semibold text-gray-800">{cat.name}</h3>
-          </div>
+              <h3 className="text-sm font-semibold text-gray-800">
+                {cat.name}
+              </h3>
+            </div>
+          </Link>
         ))}
       </div>
     </section>
